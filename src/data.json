@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "titulo": "El Quijote",
+    "autor": "Miguel de Cervantes"
+  },
+  {
+    "id": 2,
+    "titulo": "Cien años de soledad",
+    "autor": "Gabriel García Márquez"
+  },
+  {
+    "id": 3,
+    "titulo": "La Odisea",
+    "autor": "Homero"
+  },
+  {
+    "id": 4,
+    "titulo": "1984",
+    "autor": "George Orwell"
+  },
+  {
+    "id": 5,
+    "titulo": "Orgullo y prejuicio",
+    "autor": "Jane Austen"
+  }
+]
