@@ -87,10 +87,15 @@ exports.getProducts = async (req, res, next) => {
     const { category, minPrice, maxPrice, status, sort = '-createdAt', page = 1, limit = 10 } = req.query;
     const query = {};
     
-    // Filter by status if provided, otherwise default to 'published'
+    // Filter by status if provided, otherwise default to 'published' (exclude archived)
     if (status) {
       query.status = status;
     } else {
+      query.status = 'published';
+    }
+    
+    // Always exclude archived products from default results
+    if (!status || status === 'published') {
       query.status = 'published';
     }
 
@@ -186,6 +191,30 @@ exports.updateProduct = async (req, res, next) => {
       .populate('seller', 'name email avatar _id');
 
     res.json(updatedProduct);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Update product status - anyone can update status (e.g., setting to sold after purchase)
+exports.updateProductStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const product = await Product.findById(req.params.id);
+    
+    if (!product) {
+      return res.status(404).json({ message: 'Producto no encontrado' });
+    }
+
+    // Anyone can update the product status
+    product.status = status;
+    const updatedProduct = await product.save();
+
+    const populatedProduct = await Product.findById(updatedProduct._id)
+      .populate('category', 'name slug')
+      .populate('seller', 'name email avatar _id');
+
+    res.json(populatedProduct);
   } catch (err) {
     next(err);
   }

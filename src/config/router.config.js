@@ -31,6 +31,7 @@ router.get("/products", productController.getProducts);
 router.get("/products/seller/mine", authenticateToken, productController.getUserProducts);
 router.get("/products/:id", productController.getProductById);
 router.post("/products", authenticateToken, uploadMultiple.array("images"), productController.createProduct);
+router.patch("/products/:id/status", authenticateToken, productController.updateProductStatus);
 router.patch("/products/:id", authenticateToken, uploadMultiple.array("images"), productController.updateProduct);
 router.delete("/products/:id", authenticateToken, productController.deleteProduct);
 
