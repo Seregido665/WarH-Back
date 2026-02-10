@@ -9,20 +9,34 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configuración del storage de Multer con Cloudinary
+// Configuración del storage de Multer con Cloudinary (por defecto)
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "books", // Carpeta en Cloudinary donde se guardarán las imágenes
+    folder: "warh/products",
     allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-    transformation: [{ width: 500, height: 500, crop: "limit" }], // Opcional: redimensionar imagen
+    transformation: [{ width: 800, height: 800, crop: "limit" }],
   },
 });
 
-// Middleware de Multer
+// Configuración específica para avatars
+const avatarStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "warh/avatars",
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+    transformation: [{ width: 300, height: 300, crop: "fill" }],
+  },
+});
+
+// Middlewares de Multer
 const upload = multer({ storage });
+const uploadAvatar = multer({ storage: avatarStorage });
+const uploadMultiple = multer({ storage }); // Para múltiples imágenes
 
 module.exports = {
   cloudinary,
   upload,
+  uploadAvatar,
+  uploadMultiple,
 };

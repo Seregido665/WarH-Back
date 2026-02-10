@@ -8,8 +8,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
-      default: "user",
+      enum: ['buyer', 'seller'],
+      default: 'buyer',
     },
     email: {
       type: String,
@@ -25,6 +25,28 @@ const userSchema = new mongoose.Schema(
       required: [true, "La contraseña es requerida!"],
       minLength: [8, "Almenos 8 caracteres!"],
     },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+    },
+    verificationTokenExpires: {
+      type: Date,
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpires: {
+      type: Date,
+    },
+    avatar: {
+      type: String,
+    },
+    avatarPublicId: {
+      type: String,
+    },
   },
   {
     toJSON: {
@@ -32,6 +54,8 @@ const userSchema = new mongoose.Schema(
       transform: (doc, ret) => {
         ret.id = ret._id; // copiar _id en id
         delete ret.password;
+        delete ret.verificationToken;
+        delete ret.resetPasswordToken;
         delete ret._id; // eliminar _id
       },
     },
@@ -39,11 +63,28 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-userSchema.virtual("books", {
-  ref: "Book",
-  localField: "_id",
-  foreignField: "user",
-  justOne: false,
+userSchema.virtual('products', {
+  ref: 'Product',
+  localField: '_id',
+  foreignField: 'seller',
+});
+
+userSchema.virtual('reviews', {
+  ref: 'Review',
+  localField: '_id',
+  foreignField: 'author',
+});
+
+userSchema.virtual('orders', {
+  ref: 'Order',
+  localField: '_id',
+  foreignField: 'buyer',
+});
+
+userSchema.virtual('favorites', {
+  ref: 'Favorite',
+  localField: '_id',
+  foreignField: 'user',
 });
 
 userSchema.pre("save", function (next) {
