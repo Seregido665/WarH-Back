@@ -6,6 +6,12 @@ exports.createReview = async (req, res, next) => {
   try {
     const { productId, comment } = req.body;
 
+    // Limitar a 3 reseñas por usuario y producto
+    const existingCount = await Review.countDocuments({ product: productId, author: req.user.id });
+    if (existingCount >= 3) {
+      return res.status(400).json({ message: 'Has alcanzado el límite de 3 reseñas por este producto' });
+    }
+
     const review = new Review({
       comment,
       author: req.user.id,
@@ -13,7 +19,8 @@ exports.createReview = async (req, res, next) => {
     });
 
     await review.save();
-    res.status(201).json(review);
+    const populated = await Review.findById(review._id).populate('author', 'name');
+    res.status(201).json(populated);
   } catch (err) {
     next(err);
   }

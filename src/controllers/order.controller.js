@@ -1,6 +1,7 @@
 // controllers/order.controller.js
 const Order = require('../models/Order.model');
 const Product = require('../models/Product.model');
+const { sendOrderNotification } = require('../config/email.config');
 
 exports.createOrder = async (req, res, next) => {
   try {
@@ -34,6 +35,14 @@ exports.createOrder = async (req, res, next) => {
         ]
       })
       .populate('seller', 'name email avatar');
+
+    // Enviar emails de notificación al comprador y al vendedor (no bloquear respuesta)
+    try {
+      // req.user contiene al comprador gracias al middleware
+      await sendOrderNotification(populatedOrder, req.user);
+    } catch (emailErr) {
+      console.error('Error sending order emails:', emailErr);
+    }
 
     res.status(201).json(populatedOrder);
   } catch (err) {

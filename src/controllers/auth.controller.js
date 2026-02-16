@@ -179,8 +179,9 @@ const forgotPassword = async (req, res) => {
     try {
       await sendPasswordResetEmail(user.email, resetToken);
     } catch (emailErr) {
-      console.error("Error enviando email:", emailErr);
-      return res.status(500).json({ message: "Error al enviar email de recuperación" });
+      // Loguear el error pero no fallar la petición para no filtrar existencia de emails
+      console.error("Error enviando email de recuperación (SMTP):", emailErr);
+      // Continuar y responder éxito para mantener flujo UX incluso si el servicio de email falla
     }
 
     res.json({

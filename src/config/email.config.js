@@ -6,7 +6,8 @@ const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || "gmail", // Gmail, Outlook, etc. o usar host/port
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    // Accept either EMAIL_PASSWORD or EMAIL_PASS for env var compatibility
+    pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
   },
   // Alternativa: para testing con Ethereal (fake SMTP)
   // host: process.env.EMAIL_HOST,
@@ -96,3 +97,68 @@ module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
 };
+
+/**
+ * Enviar notificación de pedido tanto al comprador como al vendedor
+ * @param {Object} order - Orden poblada con product y seller
+ * @param {Object} buyer - Objeto usuario comprador con al menos `email` y `name`
+ */
+const sendOrderNotification = async (order, buyer) => {
+  try {
+    const buyerEmail = buyer?.email;
+    const seller = order?.seller;
+    const sellerEmail = seller?.email;
+    const product = order?.product;
+
+    const subjectBuyer = `Confirmación de compra - ${product?.title || 'Producto'}`;
+    const htmlBuyer = `
+      <h2>Compra confirmada</h2>
+      <p>Gracias por tu compra, ${buyer?.name || buyerEmail}.</p>
+      <p>Producto: <strong>${product?.title}</strong></p>
+      <p>Precio total: <strong>€${order?.totalPrice}</strong></p>
+      <p>Recibirás más información en tu perfil.</p>
+    `;
+
+    const subjectSeller = `Tu producto ha sido vendido - ${product?.title || 'Producto'}`;
+    const htmlSeller = `
+      <h2>Has vendido un producto</h2>
+      <p>El producto <strong>${product?.title}</strong> ha sido comprado por ${buyer?.name || buyerEmail}.</p>
+      <p>Cantidad: ${order?.quantity}</p>
+      <p>Precio total: <strong>€${order?.totalPrice}</strong></p>
+      <p>Revisa tus pedidos en la sección de perfil.</p>
+    `;
+
+    if (buyerEmail) {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: buyerEmail,
+        subject: subjectBuyer,
+        html: htmlBuyer,
+        text: `Compra confirmada: ${product?.title} - €${order?.totalPrice}`,
+      });
+    }
+
+    if (sellerEmail) {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: sellerEmail,
+        subject: subjectSeller,
+        html: htmlSeller,
+        text: `Tu producto ha sido vendido: ${product?.title} - €${order?.totalPrice}`,
+      });
+    }
+
+    console.log('Order notification emails sent');
+  } catch (err) {
+    console.error('Error sending order notification emails:', err);
+    // No lanzar error para no romper el flujo de creación de la orden
+  }
+};
+
+module.exports = {
+  transporter,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendOrderNotification,
+};
+
