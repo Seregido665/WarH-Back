@@ -1,29 +1,15 @@
 const nodemailer = require("nodemailer");
 
-// Configuración del transporter de Nodemailer
-// Para producción, usa variables de entorno con credenciales SMTP reales
+// -- CONFIGURACIÓN DE NODEMAILER --
 const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || "gmail", // Gmail, Outlook, etc. o usar host/port
   auth: {
     user: process.env.EMAIL_USER,
-    // Accept either EMAIL_PASSWORD or EMAIL_PASS for env var compatibility
     pass: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS,
   },
-  // Alternativa: para testing con Ethereal (fake SMTP)
-  // host: process.env.EMAIL_HOST,
-  // port: process.env.EMAIL_PORT,
-  // auth: {
-  //   user: process.env.EMAIL_USER,
-  //   pass: process.env.EMAIL_PASSWORD,
-  // },
 });
 
-/**
- * Enviar email de verificación
- * @param {string} email - Email del usuario
- * @param {string} token - Token de verificación
- * @param {string} userId - ID del usuario
- */
+// -- ENVIAR EMAIL DE VERIFICACIÓN --
 const sendVerificationEmail = async (email, token, userId) => {
   const verificationUrl = `${process.env.CLIENT_URL || "http://localhost:3000"}/verify-email/${token}`;
 
@@ -51,15 +37,10 @@ const sendVerificationEmail = async (email, token, userId) => {
     console.log(`Email de verificación enviado a: ${email}`);
   } catch (err) {
     console.error("Error al enviar email de verificación:", err);
-    throw new Error("No se pudo enviar el email de verificación");
   }
 };
 
-/**
- * Enviar email de reset de contraseña
- * @param {string} email - Email del usuario
- * @param {string} token - Token de reset
- */
+// -- REESCRIBIR CONTRASEÑA --
 const sendPasswordResetEmail = async (email, token) => {
   const resetUrl = `${process.env.CLIENT_URL || "http://localhost:3000"}/reset-password/${token}`;
 
@@ -87,8 +68,7 @@ const sendPasswordResetEmail = async (email, token) => {
     await transporter.sendMail(mailOptions);
     console.log(`Email de recuperación enviado a: ${email}`);
   } catch (err) {
-    console.error("Error al enviar email de recuperación:", err);
-    throw new Error("No se pudo enviar el email de recuperación");
+    console.error("Error al enviar email:", err);
   }
 };
 
@@ -98,11 +78,7 @@ module.exports = {
   sendPasswordResetEmail,
 };
 
-/**
- * Enviar notificación de pedido tanto al comprador como al vendedor
- * @param {Object} order - Orden poblada con product y seller
- * @param {Object} buyer - Objeto usuario comprador con al menos `email` y `name`
- */
+// -- ENVIAR NOTIFICACIÓN DE COMPRA/RESERVA --
 const sendOrderNotification = async (order, buyer) => {
   try {
     const buyerEmail = buyer?.email;
@@ -147,11 +123,8 @@ const sendOrderNotification = async (order, buyer) => {
         text: `Tu producto ha sido vendido: ${product?.title} - €${order?.totalPrice}`,
       });
     }
-
-    console.log('Order notification emails sent');
   } catch (err) {
-    console.error('Error sending order notification emails:', err);
-    // No lanzar error para no romper el flujo de creación de la orden
+    console.error('Error al enviar notificaciones de pedido:', err);
   }
 };
 

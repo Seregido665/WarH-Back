@@ -2,24 +2,24 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
 
-// Configuración de Cloudinary
+// -- CONFIGURACIÓN DE CLOUDINARY --
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configuración del storage de Multer con Cloudinary (por defecto)
+// -- CONFIGURACIÓN DE MULTER DE CLOUDINARY --
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "warh/products",
     allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-    transformation: [{ width: 800, height: 800, crop: "limit" }],
+    transformation: [{ width: 600, height: 600, crop: "limit" }],
   },
 });
 
-// Configuración específica para avatars
+// -- ESPECIAL PARA AVATARES --
 const avatarStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -29,10 +29,10 @@ const avatarStorage = new CloudinaryStorage({
   },
 });
 
-// Middlewares de Multer
+// -- MULTER CONFIG --
 const upload = multer({ storage });
 const uploadAvatar = multer({ storage: avatarStorage });
-const uploadMultiple = multer({ storage }); // Para múltiples imágenes
+const uploadMultiple = multer({ storage }); // PARA VARIAS IMAGENES
 
 module.exports = {
   cloudinary,

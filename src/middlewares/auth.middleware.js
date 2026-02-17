@@ -10,16 +10,13 @@ const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ message: "Token de acceso requerido" });
     }
 
-    // Verificar el token
     const decoded = verifyToken(token);
 
-    // Buscar el usuario en la base de datos
+    // -- BUSCCA USUARIO POR TOKEN --
     const user = await UserModel.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({ message: "Usuario no encontrado" });
     }
-
-    // Agregar el usuario al request para uso en otros middlewares/controladores
     req.user = user;
     next();
   } catch (error) {
@@ -30,7 +27,7 @@ const authenticateToken = async (req, res, next) => {
     } else {
       return res
         .status(500)
-        .json({ message: "Error del servidor", error: error.message });
+        .json({ message: "ErroR", error: error.message });
     }
   }
 };

@@ -1,4 +1,3 @@
-// controllers/favourite.controller.js
 const Favourite = require('../models/Favourite.model');
 
 exports.toggleFavourite = async (req, res, next) => {

@@ -4,45 +4,43 @@ const { generateToken } = require("../config/jwt.config");
 const { generateToken: generateSecureToken, hashToken, compareToken } = require("../utils/tokenUtils");
 const { sendVerificationEmail, sendPasswordResetEmail } = require("../config/email.config");
 
-// Controlador de registro
+// --- REGISTRO ---
 const register = async (req, res) => {
   try {
     const newUser = req.body;
     console.log("entro");
 
-    // Verificar si el usuario ya existe
+    // -- POR SI EXISTE USUARIO --
     const existingUser = await UserModel.findOne({ email: newUser.email });
     if (existingUser) {
       return res.status(400).json({ message: "El usuario ya existe" });
     }
 
-    // Generar token de verificación
+    // -- CREA TOKENDE VERIFICACIÓN --
     const verificationToken = generateSecureToken();
     const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
 
-    // Crear el nuevo usuario con token hasheado
+    // -- NUEVO USUARIO CON TOKEN HASHEADO --
     const user = await UserModel.create({
       ...newUser,
       verificationToken: hashToken(verificationToken),
       verificationTokenExpires,
     });
 
-    // Generar JWT token para sesión
+    // -- GENERA TOKEN PARA LOGIN --
     const jwtToken = generateToken({
       userId: user._id,
       email: user.email,
       name: user.name,
     });
 
-    // Enviar email de verificación
+    // -- ENVIAR EMAIL DE VERIFICACION --
     try {
       await sendVerificationEmail(user.email, verificationToken, user._id);
     } catch (emailErr) {
       console.error("Error enviando email:", emailErr);
-      // No fallar la creación del usuario si falla el email
     }
 
-    // Respuesta sin la contraseña
     const userResponse = {
       _id: user._id,
       name: user.name,
@@ -51,7 +49,7 @@ const register = async (req, res) => {
     };
 
     res.status(201).json({
-      message: "Usuario creado correctamente. Verifica tu email.",
+      message: "Usuario creado correctamente.",
       token: jwtToken,
       user: userResponse,
     });
@@ -62,12 +60,12 @@ const register = async (req, res) => {
   }
 };
 
-// Controlador de login
+// --- LOGIN ---
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validar que se envíen email y contraseña
+    // -- VALIDAR CAMPOS --
     if (!email || !password) {
       return res
         .status(400)
@@ -84,19 +82,13 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Credenciales incorrectas" });
     }
 
-    // Opcional: Descomentar si quieres requerir verificación de email
-    // if (!user.emailVerified) {
-    //   return res.status(403).json({ message: "Verifica tu email para continuar" });
-    // }
-
-    // Generar JWT token
+    // -- GENERAR TOKEN JWT --
     const token = generateToken({
       userId: user._id,
       email: user.email,
       name: user.name,
     });
 
-    // Login exitoso
     const userResponse = {
       _id: user._id,
       name: user.name,
@@ -116,25 +108,22 @@ const login = async (req, res) => {
   }
 };
 
-// Verificar email con token
+// -- VERIFICAR EMAIL CON TOKEN --
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params;
-
-    // Hashear el token recibido para comparar
     const hashedToken = hashToken(token);
 
-    // Buscar usuario con este token
+    // -- BUSCAR USUARIO CON ESE TOKEN --
     const user = await UserModel.findOne({
       verificationToken: hashedToken,
       verificationTokenExpires: { $gt: new Date() },
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Token inválido o expirado" });
+      return res.status(400).json({ message: "Token inválido" });
     }
 
-    // Marcar como verificado
     user.emailVerified = true;
     user.verificationToken = null;
     user.verificationTokenExpires = null;
@@ -153,46 +142,36 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-// Solicitar reset de contraseña
+// --- PEDIR NUEVA CONTRASEÑA ---
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
     const user = await UserModel.findOne({ email });
     if (!user) {
-      // No revelar si el email existe o no por seguridad
-      return res.json({
-        message: "Si el email existe, se enviará un enlace de recuperación",
-      });
+      return
     }
 
-    // Generar token de reset
+    // -- TOKEN DE RESET --
     const resetToken = generateSecureToken();
     const resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
-    // Guardar token hasheado
     user.resetPasswordToken = hashToken(resetToken);
     user.resetPasswordExpires = resetPasswordExpires;
     await user.save();
 
-    // Enviar email
+    // -- ENVIAR EMAIL DE RESETEO --
     try {
       await sendPasswordResetEmail(user.email, resetToken);
     } catch (emailErr) {
-      // Loguear el error pero no fallar la petición para no filtrar existencia de emails
-      console.error("Error enviando email de recuperación (SMTP):", emailErr);
-      // Continuar y responder éxito para mantener flujo UX incluso si el servicio de email falla
+      console.error("Error enviando email de recuperación:", emailErr);
     }
-
-    res.json({
-      message: "Si el email existe, se enviará un enlace de recuperación",
-    });
   } catch (err) {
     res.status(500).json({ message: "Error en solicitud de reset", error: err.message });
   }
 };
 
-// Cambiar contraseña con token
+// --- CAMBIAR CONTRASEÑA ---
 const resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
@@ -202,10 +181,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres" });
     }
 
-    // Hashear el token recibido para comparar
     const hashedToken = hashToken(token);
-
-    // Buscar usuario con este token
     const user = await UserModel.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: new Date() },
@@ -215,24 +191,18 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Token inválido o expirado" });
     }
 
-    // Actualizar contraseña
     user.password = newPassword;
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
     await user.save();
-
-    res.json({
-      message: "Contraseña actualizada exitosamente",
-    });
   } catch (err) {
     res.status(500).json({ message: "Error al resetear contraseña", error: err.message });
   }
 };
 
-// Obtener perfil del usuario autenticado
+// --- OBTENER PERFIL ---
 const getProfile = async (req, res) => {
   try {
-    // req.user viene del middleware de autenticación
     const user = req.user;
 
     const userResponse = {
@@ -252,22 +222,15 @@ const getProfile = async (req, res) => {
   }
 };
 
-// Refrescar token
+// --- REFRESCAR TOKEN --
 const refreshToken = async (req, res) => {
   try {
-    // req.user viene del middleware de autenticación
     const user = req.user;
 
-    // Generar nuevo token
     const token = generateToken({
       userId: user._id,
       email: user.email,
       name: user.name,
-    });
-
-    res.json({
-      message: "Token actualizado",
-      token,
     });
   } catch (err) {
     res
@@ -276,7 +239,7 @@ const refreshToken = async (req, res) => {
   }
 };
 
-// Actualizar perfil con avatar
+// --- ACTUALIZAR PERFIL ---
 const updateProfile = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -286,28 +249,12 @@ const updateProfile = async (req, res) => {
     if (name) updateData.name = name;
     if (role) updateData.role = role;
 
-    // Si se subió una imagen, agregarla
     if (req.file) {
-      // Si ya tiene avatar, eliminarlo de Cloudinary (opcional)
-      // if (user.avatarPublicId) {
-      //   await cloudinary.uploader.destroy(user.avatarPublicId);
-      // }
       updateData.avatar = req.file.secure_url || req.file.path;
       updateData.avatarPublicId = req.file.public_id;
     }
 
     const user = await UserModel.findByIdAndUpdate(userId, updateData, { new: true });
-
-    res.json({
-      message: "Perfil actualizado",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        role: user.role,
-      },
-    });
   } catch (err) {
     res.status(500).json({ message: "Error al actualizar perfil", error: err.message });
   }

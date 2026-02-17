@@ -6,7 +6,7 @@ exports.createReview = async (req, res, next) => {
   try {
     const { productId, comment } = req.body;
 
-    // Limitar a 3 reseñas por usuario y producto
+    // -- MAXIMO 3 POR USUARIO EN UN MISMO PRODUCTO --
     const existingCount = await Review.countDocuments({ product: productId, author: req.user.id });
     if (existingCount >= 3) {
       return res.status(400).json({ message: 'Has alcanzado el límite de 3 reseñas por este producto' });
