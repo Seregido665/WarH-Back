@@ -39,6 +39,7 @@ exports.createProduct = async (req, res, next) => {
       const populated = await Product.findById(product._id)
         .populate('category', 'name slug')
         .populate('seller', 'name email avatar _id');
+      res.status(201).json(populated);
     } catch (saveErr) {
       if (saveErr.name === 'ValidationError') {
         const errors = Object.keys(saveErr.errors).reduce((acc, key) => {
@@ -100,7 +101,13 @@ exports.getProducts = async (req, res, next) => {
     const total = await Product.countDocuments(query);
 
     res.json({
-      data: products
+      data: products,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit))
+      }
     });
   } catch (err) {
     next(err);
@@ -150,15 +157,39 @@ exports.updateProduct = async (req, res, next) => {
     }
 
     // Actualizar datos básicos
-    Object.assign(product, req.body);
+    const { title, description, price, category } = req.body;
+    
+    if (title) product.title = title;
+    if (description) product.description = description;
+    if (price) product.price = price;
+    
+    // Manejar la categoría
+    if (category) {
+      let categoryId = category;
+      
+      if (!mongoose.Types.ObjectId.isValid(category)) {
+        try {
+          let cat = await Category.findOne({ name: category });
+          if (!cat) {
+            const slug = category.toLowerCase().replace(/\s+/g, '-');
+            cat = await Category.create({ name: category, slug });
+          }
+          categoryId = cat._id;
+        } catch (catErr) {
+          return res.status(400).json({ message: 'Error processing category', error: catErr.message });
+        }
+      }
+      product.category = categoryId;
+    }
 
-    // -- REEMPÑAZAR POR LAS NUEVAS IMÁGENES ---
+    // -- REEMPLAZAR POR LAS NUEVAS IMÁGENES ---
     if (req.files && Array.isArray(req.files)) {      
       product.images = req.files.map(file => file.secure_url || file.path);
     }
 
-    const updatedProduct = await product.save();
-    const populatedProduct = await updatedProduct
+    await product.save();
+    
+    const updatedProduct = await Product.findById(product._id)
       .populate('category', 'name slug')
       .populate('seller', 'name email avatar _id');
 

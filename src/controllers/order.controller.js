@@ -39,6 +39,8 @@ exports.createOrder = async (req, res, next) => {
     } catch (emailErr) {
       console.error('Error sending order emails:', emailErr);
     }
+
+    res.status(201).json(populatedOrder);
   } catch (err) {
     next(err);
   }
@@ -57,6 +59,8 @@ exports.getMyOrders = async (req, res, next) => {
       })
       .populate('seller', 'name email avatar')
       .sort('-createdAt');
+
+    res.json(orders);
   } catch (err) {
     next(err);
   }
